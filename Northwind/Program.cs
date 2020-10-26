@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using Raven.Client.Documents;
 
@@ -25,10 +26,7 @@ namespace Northwind
 
             using (var session = store.OpenSession())
             {
-                var counters = session.CountersFor("orders/823-A");
-                counters.Increment("⭐⭐");
-                counters.Increment("⭐⭐⭐",-1);
-                session.SaveChanges();
+                List<Order> orders = session.Advanced.Revisions.GetFor<Order>("orders/823-A");
             }
 
         }
