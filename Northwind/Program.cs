@@ -25,8 +25,10 @@ namespace Northwind
 
             using (var session = store.OpenSession())
             {
-                var employee = session.Load<Employee>("employees/1-A");
-                Console.WriteLine(employee.FirstName);
+                var counters = session.CountersFor("orders/823-A");
+                counters.Increment("⭐⭐");
+                counters.Increment("⭐⭐⭐",-1);
+                session.SaveChanges();
             }
 
         }
