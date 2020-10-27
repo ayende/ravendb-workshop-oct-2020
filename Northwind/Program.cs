@@ -39,167 +39,191 @@ namespace Northwind
                 Certificate = certLocal,
                 Urls = local
             };
+
+            var currentUser = "Oren Eini";
+
+            store.OnBeforeStore += (sender, args) =>
+            {
+                if(args.Session.GetChangeVectorFor(args.Entity)  == null)
+                    args.DocumentMetadata["Created-By"] = currentUser;
+                args.DocumentMetadata["Modified-By"] = currentUser;
+            };
+
             store.Initialize();
 
-            var worker = store.Subscriptions.GetSubscriptionWorker<Employee>(new SubscriptionWorkerOptions("LondonEmps")
+            using (var session = store.OpenSession())
             {
-                Strategy = SubscriptionOpeningStrategy.WaitForFree
-            });
-            worker.Run(batch =>
-            {
-                using var session = batch.OpenSession();
-                //session.Advanced.UseOptimisticConcurrency = true;
-                foreach (var item in batch.Items)
+                var employee = session.Load<Employee>("employees/11-B");
+                employee.Birthday = DateTime.Now;
+                
+                var emp = new Employee
                 {
-                    Console.WriteLine(item.Id);
-                    try
-                    {
-                        session.Store(new {
-                                Employee = item.Id
-                            }, "sub/" + item.Id);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        if(e is foo)
-                            throw;
-                    }
-                }
+                    FirstName = "Roger",
+                    LastName = "Rabbit"
+                };
+                session.Store(emp);
                 session.SaveChanges();
+            }
 
-            }).Wait();
-
-            //using (var session = store.OpenSession())
+            //var worker = store.Subscriptions.GetSubscriptionWorker<Employee>(new SubscriptionWorkerOptions("LondonEmps")
             //{
-            //    var employee = session.Advanced.Lazily.Load<Employee>("employees/2-A");
-            //    var orders = session.Query<Order>()
-            //        .Where(x => x.Employee == "employees/2-A")
-            //        .OrderByDescending(x => x.OrderedAt)
-            //        .Take(5)
-            //        .Select(x=>new {
-            //            x.Id,
-            //            EmpFirstName = RavenQuery.Load<Employee>(x.Employee).FirstName
-            //        })
-            //        .Lazily();
-
-            //    Console.WriteLine(employee.Value.FirstName);
-            //    Console.WriteLine(string.Join(", ", orders.Value.Select(x => x.Id)));
-            //    Console.WriteLine(session.Advanced.NumberOfRequests);
-
-            //}
-
-
-
-            //IndexCreation.CreateIndexes(Assembly.GetExecutingAssembly(), store);
-            //using (var session = store.OpenSession())
-            //using(var bulk = store.BulkInsert())
+            //    Strategy = SubscriptionOpeningStrategy.WaitForFree
+            //});
+            //worker.Run(batch =>
             //{
-            //    foreach (var i in session.Query<Employee>().ToList())
+            //    using var session = batch.OpenSession();
+            //    //session.Advanced.UseOptimisticConcurrency = true;
+            //    foreach (var item in batch.Items)
             //    {
-            //        bulk.Store(i, i.Id);
-            //    }
-            //    foreach (var i in session.Query<Supplier>().ToList())
-            //    {
-            //        bulk.Store(i, i.Id);
-            //    }
-            //    foreach (var i in session.Query<Company>().ToList())
-            //    {
-            //        bulk.Store(i, i.Id);
-            //    }
-            //    return;
-            //}
-
-            //using (var session = store.OpenSession())
-            //{
-            //    var ravenQueryable = session.Query<People_Search.Result, People_Search>()
-            //        //.Where(x=>x.Name == "anne")
-            //        .Search(x => x.Name, "anne")
-            //        .Select(x=>new {
-            //            Name = x.Contact.Name ?? x.FirstName + " " + x.LastName
-            //        });
-            //    Console.WriteLine(ravenQueryable);
-            //    var results = ravenQueryable
-            //        .ToList();
-
-            //    foreach (var result in results)
-            //    {
-            //        Console.WriteLine(result);
-            //        //switch (result)
-            //        //{
-            //        //    case Employee e:
-            //        //        Console.WriteLine(e.FirstName + " " + e.LastName);
-            //        //        break;
-            //        //    case Supplier s:
-            //        //        Console.WriteLine(s.Contact.Name);
-            //        //        break;
-            //        //    case Company c:
-            //        //        Console.WriteLine(c.Contact.Name);
-            //        //        break;
-            //        //}
-            //    }
-            //}
-
-            //using (var session = store.OpenSession())
-            //{
-            //    //session.Include<Order>(x => x.Employee).Load("orders/812-a");
-
-            //    var ravenQueryable = session.Query<Order>()
-            //        .Select(o => new
+            //        Console.WriteLine(item.Id);
+            //        try
             //        {
-            //            Count = o.Lines.Sum(x => x.Quantity),
-            //            Total = o.Lines.Sum(x => x.PricePerUnit * x.Quantity)
-            //        });
-            //    Console.WriteLine(ravenQueryable);
-            //    var results = ravenQueryable.ToList();
-            //    foreach (var result in results)
-            //    {
-            //        Console.WriteLine(result);
+            //            session.Store(new {
+            //                    Employee = item.Id
+            //                }, "sub/" + item.Id);
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            Console.WriteLine(e);
+            //            if(e is foo)
+            //                throw;
+            //        }
             //    }
+            //    session.SaveChanges();
 
-            //}
+                //}).Wait();
+
+                //using (var session = store.OpenSession())
+                //{
+                //    var employee = session.Advanced.Lazily.Load<Employee>("employees/2-A");
+                //    var orders = session.Query<Order>()
+                //        .Where(x => x.Employee == "employees/2-A")
+                //        .OrderByDescending(x => x.OrderedAt)
+                //        .Take(5)
+                //        .Select(x=>new {
+                //            x.Id,
+                //            EmpFirstName = RavenQuery.Load<Employee>(x.Employee).FirstName
+                //        })
+                //        .Lazily();
+
+                //    Console.WriteLine(employee.Value.FirstName);
+                //    Console.WriteLine(string.Join(", ", orders.Value.Select(x => x.Id)));
+                //    Console.WriteLine(session.Advanced.NumberOfRequests);
+
+                //}
 
 
-            //using (var session = store.OpenSession())
-            //{
-            //    var results = session.Query<Orders_TotalCost.Result, Orders_TotalCost>()
-            //        .Where(x=>x.Total > 100)
-            //        .OfType<Order>()
-            //        .ToList();
-            //    foreach (var result in results)
-            //    {
-            //        Console.WriteLine(result.Id);
-            //    }
 
-            //}
+                //IndexCreation.CreateIndexes(Assembly.GetExecutingAssembly(), store);
+                //using (var session = store.OpenSession())
+                //using(var bulk = store.BulkInsert())
+                //{
+                //    foreach (var i in session.Query<Employee>().ToList())
+                //    {
+                //        bulk.Store(i, i.Id);
+                //    }
+                //    foreach (var i in session.Query<Supplier>().ToList())
+                //    {
+                //        bulk.Store(i, i.Id);
+                //    }
+                //    foreach (var i in session.Query<Company>().ToList())
+                //    {
+                //        bulk.Store(i, i.Id);
+                //    }
+                //    return;
+                //}
+
+                //using (var session = store.OpenSession())
+                //{
+                //    var ravenQueryable = session.Query<People_Search.Result, People_Search>()
+                //        //.Where(x=>x.Name == "anne")
+                //        .Search(x => x.Name, "anne")
+                //        .Select(x=>new {
+                //            Name = x.Contact.Name ?? x.FirstName + " " + x.LastName
+                //        });
+                //    Console.WriteLine(ravenQueryable);
+                //    var results = ravenQueryable
+                //        .ToList();
+
+                //    foreach (var result in results)
+                //    {
+                //        Console.WriteLine(result);
+                //        //switch (result)
+                //        //{
+                //        //    case Employee e:
+                //        //        Console.WriteLine(e.FirstName + " " + e.LastName);
+                //        //        break;
+                //        //    case Supplier s:
+                //        //        Console.WriteLine(s.Contact.Name);
+                //        //        break;
+                //        //    case Company c:
+                //        //        Console.WriteLine(c.Contact.Name);
+                //        //        break;
+                //        //}
+                //    }
+                //}
+
+                //using (var session = store.OpenSession())
+                //{
+                //    //session.Include<Order>(x => x.Employee).Load("orders/812-a");
+
+                //    var ravenQueryable = session.Query<Order>()
+                //        .Select(o => new
+                //        {
+                //            Count = o.Lines.Sum(x => x.Quantity),
+                //            Total = o.Lines.Sum(x => x.PricePerUnit * x.Quantity)
+                //        });
+                //    Console.WriteLine(ravenQueryable);
+                //    var results = ravenQueryable.ToList();
+                //    foreach (var result in results)
+                //    {
+                //        Console.WriteLine(result);
+                //    }
+
+                //}
 
 
-            //using (var session = store.OpenSession())
-            //{
-            //    var results = session.Query<Employees_SearchNotes.Result, Employees_SearchNotes>()
-            //        .Search(x => x.Name, "Anne")
-            //        .OfType<Employee>()
-            //        .ToList();
-            //    foreach (var result in results)
-            //    {
-            //        Console.WriteLine(result.FirstName);
-            //    }
+                //using (var session = store.OpenSession())
+                //{
+                //    var results = session.Query<Orders_TotalCost.Result, Orders_TotalCost>()
+                //        .Where(x=>x.Total > 100)
+                //        .OfType<Order>()
+                //        .ToList();
+                //    foreach (var result in results)
+                //    {
+                //        Console.WriteLine(result.Id);
+                //    }
 
-            //}
+                //}
 
-            //var sp = Stopwatch.StartNew();
-            //using (var session = store.OpenSession())
-            //{
-            //    var results = session.Query<Company>()
-            //        .Search(x => x.Contact.Name, "Karl")
-            //        .ToList();
-            //    foreach (var result in results)
-            //    {
-            //        Console.WriteLine(result.Name);
-            //    }
 
-            //}
+                //using (var session = store.OpenSession())
+                //{
+                //    var results = session.Query<Employees_SearchNotes.Result, Employees_SearchNotes>()
+                //        .Search(x => x.Name, "Anne")
+                //        .OfType<Employee>()
+                //        .ToList();
+                //    foreach (var result in results)
+                //    {
+                //        Console.WriteLine(result.FirstName);
+                //    }
 
-            //Console.WriteLine(sp.Elapsed);
+                //}
+
+                //var sp = Stopwatch.StartNew();
+                //using (var session = store.OpenSession())
+                //{
+                //    var results = session.Query<Company>()
+                //        .Search(x => x.Contact.Name, "Karl")
+                //        .ToList();
+                //    foreach (var result in results)
+                //    {
+                //        Console.WriteLine(result.Name);
+                //    }
+
+                //}
+
+                //Console.WriteLine(sp.Elapsed);
         }
     }
 
