@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Raven.Client.Documents.Linq;
@@ -9,7 +10,10 @@ using System.Threading.Tasks;
 using Raven.Client.Documents;
 using Raven.Client.Documents.Indexes;
 using Raven.Client.Documents.Queries;
+using Raven.Client.Documents.Session;
 using Raven.Client.Documents.Subscriptions;
+using Raven.Client.Exceptions;
+using Sparrow.Json;
 
 namespace Northwind
 {
@@ -40,29 +44,45 @@ namespace Northwind
                 Urls = local
             };
 
-            var currentUser = "Oren Eini";
+           
+            
+            //store.OnBeforeDelete += (sender, args) =>
+            //{
+            //    if (args.Entity is Employee e && e.FirstName == "Roget")
+            //        throw new InvalidOperationException();
+            //}
+            //store.OnBeforeStore += (sender, args) =>
+            //{
+            //    if(args.Session.GetChangeVectorFor(args.Entity)  == null)
+            //        args.DocumentMetadata["Created-By"] = currentUser;
+            //    args.DocumentMetadata["Modified-By"] = currentUser;
+            //};
 
-            store.OnBeforeStore += (sender, args) =>
-            {
-                if(args.Session.GetChangeVectorFor(args.Entity)  == null)
-                    args.DocumentMetadata["Created-By"] = currentUser;
-                args.DocumentMetadata["Modified-By"] = currentUser;
-            };
+            store.OnBeforeRequest += (sender, args) => { Console.WriteLine(args.Url); };
+            
+            string ctx = "1";
 
+//            store.Conventions.LoadBalancerPerSessionContextSelector += s => ctx;
             store.Initialize();
 
-            using (var session = store.OpenSession())
+
+
+            while (true)
             {
-                var employee = session.Load<Employee>("employees/11-B");
-                employee.Birthday = DateTime.Now;
-                
-                var emp = new Employee
+                using (var session = store.OpenSession())
                 {
-                    FirstName = "Roger",
-                    LastName = "Rabbit"
-                };
-                session.Store(emp);
-                session.SaveChanges();
+                    session.Advanced.SessionInfo.SetContext(ctx);
+                    session.Query<Employee>()
+                        .Where(x => x.FirstName == "Roger")
+                        .ToList();
+
+                    session.Store(new { });
+                    session.SaveChanges();
+                }
+
+                ctx = Console.ReadLine() ??"1";
+                if (ctx.Length == 0)
+                    ctx = "1";
             }
 
             //var worker = store.Subscriptions.GetSubscriptionWorker<Employee>(new SubscriptionWorkerOptions("LondonEmps")
